@@ -1,19 +1,20 @@
-from random import randrange
+from random import randrange, random, choice
+import MillerRabin, Banners, csv
 
 '''
-Generowanie liczb pierwszych
+Generowanie listy zawierającej liczby pierwsze z podanego zakresu
 '''
-
 
 def prime_generator():
-    return 0
+    for liczba in range(100001, 120003, 2):   #zakres jaki chcemy przeszukać - tylko liczby nieparzyste
+        if MillerRabin.pierwszosc(liczba):
+            MillerRabin.liczby_pierwsze.append(liczba)
+    if len(MillerRabin.liczby_pierwsze) == 0:
+        raise AssertionError("Nie znaleziono liczby pierwszej w podanym zakresie")
+    return MillerRabin.liczby_pierwsze
 
 
-'''
-Dla testów lczby pierwsze podane na sztywno
-'''
-p = 30133
-q = 99767
+
 
 '''
 Sprawdzanie pierwszości
@@ -59,20 +60,6 @@ def xgcd(a, b):
     return a, ox, oy
 
 
-'''
-Obliczamy 'n'
-'''
-n = p * q
-
-'''
-Obiczamy wartość funkcji Eulera
-'''
-fi_n = (p - 1) * (q - 1)
-
-'''
-Wybieramy liczbę 'e' spełniającą warunek: 
-1 < e < fi_n
-'''
 
 
 def wybierz_e(fi):
@@ -82,26 +69,148 @@ def wybierz_e(fi):
             return e
 
 
-e = wybierz_e(fi_n)
+
+def keygen():
+    prime_list = prime_generator()
+    '''
+    Wybieranie p i q
+    '''
+    p = choice(prime_list)
+    prime_list.remove(p)
+    q = choice(prime_list)
+
+    '''
+    Obliczamy 'n'
+    '''
+    n = p * q
+
+    '''
+    Obiczamy wartość funkcji Eulera
+    '''
+    fi_n = (p - 1) * (q - 1)
+
+    '''
+    Wybieramy liczbę 'e' spełniającą warunek: 
+    1 < e < fi_n
+    '''
+    e = wybierz_e(fi_n)
+
+    '''
+    Znajdujemy liczbę d, gdzie jej różnica z odwrotnością modularną liczby e jest podzielna przez fi_n
+    '''
+
+    gcd, x, y = xgcd(e, fi_n)
+    if (x < 0):
+        d = x + fi_n
+    else:
+        d = x
+
+    # print('Sprawdzenie czy (e * d) % fi_n = 1. Wynik: ', (e * d) % fi_n)
+
+    '''
+    Klucz publiczny jest definiowany jako para licb (n, e), natomiast kluczem prywatnym jest para (n, d)
+    '''
+
+    public_key = (str(n) + '\n' + str(e) + '\n')
+    private_key = (str(n) + '\n' + str(d) + '\n')
+
+    # print('Klucz publiczny: \n', public_key)
+    #     # print('Klucz prywatny: \n', private_key)
+    #     #
+    #     # print(f'Priv = {str(n) + str(d)}')
+    #     # print(f'Pub = {str(n) + str(e)}')
+    return n, e, d
+
+
 '''
-Znajdujemy liczbę d, gdzie jej różnica z odwrotnością modularną liczby e jest podzielna przez fi_n
+Funkcja szyfrujaca
 '''
 
-gcd, x, y = xgcd(e, fi_n)
-if(x < 0):
-    d = x + fi_n
-else:
-    d = x
+def encrypt(msg):
+    list=[]
+    for i in msg:
+        list.append(pow(i, e, n))
+    return list
 
-print('Sprawdzenie czy (e * d) % fi_n = 1. Wynik: ', (e*d)%fi_n)
+'''
+Funkcja deszyfrująca
+'''
+def decrypt(msg):
+    list = []
+    for i in msg:
+        list.append(pow(i, d, n))
+    return list
 
 
 '''
-Klucz publiczny jest definiowany jako para licb (n, e), natomiast kluczem prywatnym jest para (n, d)
+Pętla zamieniająca znaki ze string'a na liczby dziesiętne
 '''
+def strToAscii(string):
+    lista_ascii = []  # Lista z liczbami dziesiętnymi
 
-public_key = (str(n) + '\n' + str(e) + '\n')
-private_key = (str(n) + '\n' + str(d) + '\n')
+    for i in string:
+        lista_ascii.append(ord(i))
+    return lista_ascii
+"""
+Pętla zamieniająca kody ASCII na string
+"""
+def asciiToString(asci):
+    lista_string = []
 
-print('Klucz publiczny: \n', public_key)
-print('Klucz prywatny: \n', private_key)
+    for i in asci:
+        lista_string.append(chr(i))
+    return lista_string
+
+def zapiszDoCsv(x, filename, tryb):
+    filenamecsv = filename + ".csv"
+
+    with open(filenamecsv, tryb, encoding='utf-8', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow([x])
+
+def wczytajKlucz(filename):
+    filenamecsv = filename + ".csv"
+    reader = csv.reader(
+        open(filenamecsv, 'r'),
+            quoting=csv.QUOTE_NONE
+    )
+    p1 = next(reader)
+    p2 = next(reader)
+    return int(p1[0]), int(p2[0])
+
+if __name__ == '__main__':
+    n, e = wczytajKlucz('pubkey')
+    n, d = wczytajKlucz('privkey')
+    wybor=None
+    # print(prime_generator())
+    while wybor != 0:
+        Banners.bannerMain()
+        print(type(n))
+        print(f'Klucz publiczny: e = {n}, n = {e}')
+        print(f'Klucz prywatny: e = {n}, n = {d}')
+        wybor = int(input("Wybierz od 0 do 3: "))
+        if wybor == 1:
+            n, e, d = keygen()
+            zapiszDoCsv(n, 'pubkey', 'w')
+            zapiszDoCsv(e, 'pubkey', 'a')
+            zapiszDoCsv(n, 'privkey', 'w')
+            zapiszDoCsv(d, 'privkey', 'a')
+        elif wybor == 2:
+            Banners.bannerZaszyfruj()
+            msg = input('Wpisz wiadomość:\n')
+            asci_list = strToAscii(msg)
+            encrypted_msg = encrypt(asci_list)
+            print(encrypted_msg)
+            encrypted_str = ''.join(str(i) for i in encrypted_msg)
+            print(encrypted_str)
+        elif wybor == 3:
+            Banners.bannerOdszyfruj()
+            msg = input('Wpisz wiadomość:\n')
+            decrypted_msg = decrypt(encrypted_msg)
+            char_list = asciiToString(decrypted_msg)
+            # decrypted_msg = decrypt(asci_list)
+            decrypted_str = ''.join(char_list)
+            print(decrypted_str)
+        else:
+            pass
+    exit()
