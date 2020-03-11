@@ -127,20 +127,21 @@ Funkcja szyfrujaca
 '''
 
 def encrypt(msg):
-    list=[]
-    for i in msg:
-        list.append(pow(i, e, n))
-    return list
+    return pow(msg, e, n)
 
 '''
 Funkcja deszyfrująca
 '''
 def decrypt(msg):
-    list = []
-    for i in msg:
-        list.append(pow(i, d, n))
-    return list
+    return pow(msg, d, n)
 
+
+def convertIntList(list):
+    s = [str(i) for i in list]
+
+    res = int("".join(s))
+
+    return res
 
 '''
 Pętla zamieniająca znaki ze string'a na liczby dziesiętne
@@ -199,15 +200,21 @@ if __name__ == '__main__':
             Banners.bannerZaszyfruj()
             msg = input('Wpisz wiadomość:\n')
             asci_list = strToAscii(msg)
-            encrypted_msg = encrypt(asci_list)
+            print('Asci list: ', asci_list)
+            bigInt = convertIntList(asci_list)
+            encrypted_msg = encrypt(bigInt)
             print(encrypted_msg)
-            encrypted_str = ''.join(str(i) for i in encrypted_msg)
-            print(encrypted_str)
+            # encrypted_str = ''.join(str(i) for i in encrypted_msg)
+            # print(encrypted_str)
         elif wybor == 3:
             Banners.bannerOdszyfruj()
             msg = input('Wpisz wiadomość:\n')
-            decrypted_msg = decrypt(encrypted_msg)
-            char_list = asciiToString(decrypted_msg)
+            decrypted_int = decrypt(int(msg))
+            decrypted_str = str(decrypted_int)
+            decrypted_msg = [decrypted_str[i:i+3] for i in range(0, len(decrypted_str), 3)]
+            print(decrypted_msg)
+            decrypted_msg_to_int =  list(map(int, decrypted_msg))
+            char_list = asciiToString(decrypted_msg_to_int)
             # decrypted_msg = decrypt(asci_list)
             decrypted_str = ''.join(char_list)
             print(decrypted_str)
